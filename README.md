@@ -1,5 +1,5 @@
 # Demo
-<video src="./assets/demo.mp4" controls width="600"></video>
+<video src="./assets/replica_demo.mp4" controls width="600"></video>
 
 
 # ADL4CV_TUM_ovis
