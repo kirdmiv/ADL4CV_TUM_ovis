@@ -1,7 +1,7 @@
 # Demo
-<video src="./assets/replica_demo.mp4" controls width="600"></video>
+<video src="./assets/replica_demo_compressed.mp4" controls width="600"></video>
 
-![Demo video](./assets/replica_demo.mp4)
+![Demo video](./assets/replica_demo_compressed.mp4)
 
 # ADL4CV_TUM_ovis
 Combine OmniSeg3D and LSeg (or 2D object detection model) to perform Open Vocabulary Instance Segmentation in a 3D scene. This project was made as a part of [ADL4CV class](https://niessner.github.io/ADL4CV/) at TUM.
