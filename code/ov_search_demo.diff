@@ -1,0 +1,90 @@
+diff --git a/render_omni_gui.py b/render_omni_gui.py
+index 00f2bc9..d2a62f2 100644
+--- a/render_omni_gui.py
++++ b/render_omni_gui.py
+@@ -29,6 +29,7 @@ import dearpygui.dearpygui as dpg
+ import math
+ from scene.cameras import Camera
+ from utils.graphics_utils import getWorld2View2, focal2fov, fov2focal
++from open_vocabulary_search import OVSearch, OVSearchConfig
+ 
+ from scipy.spatial.transform import Rotation as R
+ 
+@@ -61,7 +62,7 @@ class CONFIG:
+ 
+     # ckpt TODO: load from gui window.
+ 
+-    ply_path = "output/360_counter_omni_1/sem_hi/point_cloud/iteration_15000/point_cloud.ply"
++    ply_path = "../point_cloud_replica.ply"
+ 
+ 
+ class OrbitCamera:
+@@ -192,6 +193,10 @@ class GaussianSplattingGUI:
+         self.dynamic_resolution = True
+         self.debug = opt.debug
+         self.engine = gaussian_model
++        self.chosen_feature = None
++        self.ov_search = OVSearch()
++        self.search_flag = False
++        self.search_config = OVSearchConfig()
+ 
+         self.proj_mat = None
+ 
+@@ -283,6 +288,17 @@ class GaussianSplattingGUI:
+             dpg.add_button(label="clear_edit", callback=clear_edit, user_data="Some Data")
+             dpg.add_button(label="segment3d", callback=callback_segment3d, user_data="Some Data")
+             dpg.add_button(label="reload_data", callback=callback_reload, user_data="Some Data")
++            text_input_tag = dpg.add_input_text(label="prompt", default_value="pillow")
++            lseg_thresh_tag = dpg.add_slider_float(label="LSeg Thres", default_value=0.9,
++                                                   min_value=0.0, max_value=1.0)
++            num_of_views_tag = dpg.add_slider_int(label="Num of Views", default_value=3,
++                                                   min_value=2, max_value=10)
++            def callback_search(sender, app_data):
++                self.search_flag = True
++                self.search_config.lseg_threshold = dpg.get_value(lseg_thresh_tag)
++                self.search_config.prompt = dpg.get_value(text_input_tag)
++                self.search_config.min_number_of_views = dpg.get_value(num_of_views_tag)
++            dpg.add_button(label="Search!", callback=callback_search, user_data="Some Data")
+ 
+             def callback(sender, app_data, user_data):
+                 self.load_model = False
+@@ -432,13 +448,13 @@ class GaussianSplattingGUI:
+ 
+     def pca(self, X, n_components=3):
+         n = X.shape[0]
+-        mean = torch.mean(X, dim=0)
++        mean = torch.mean(X, axis=0)
+         X = X - mean
+         covariance_matrix = (1 / n) * torch.matmul(X.T, X).float()  # An old torch bug: matmul float32->float16, 
+-        eigenvalues, eigenvectors = torch.eig(covariance_matrix, eigenvectors=True)
+-        eigenvalues = torch.norm(eigenvalues, dim=1)
+-        idx = torch.argsort(-eigenvalues)
+-        eigenvectors = eigenvectors[:, idx]
++        eigenvalues, eigenvectors = torch.linalg.eig(covariance_matrix)
++        # Ignore im. component
++        idx = torch.argsort(-eigenvalues.real)
++        eigenvectors = eigenvectors[:, idx].real
+         proj_mat = eigenvectors[:, 0:n_components]
+         
+         return proj_mat
+@@ -482,8 +498,19 @@ class GaussianSplattingGUI:
+             self.engine.load_ply(self.opt.ply_path)
+             print("Reload original 3D Gaussians from: ", self.opt.ply_path)
+ 
++        if self.search_flag:
++            self.search_flag = False
++            print(f"Looking for a {self.search_config.prompt} with params: lseg_threshold={self.search_config.lseg_threshold}, min number of views which contain an object={self.search_config.min_number_of_views}")
++            search_result = self.ov_search.ov_search(self.search_config)
++            if search_result.size != 0:
++                self.chosen_feature = search_result
++                self.chosen_feature = torch.from_numpy(self.chosen_feature.T).cuda().to(dtype=torch.float32)
++                self.prompt_num = self.chosen_feature.shape[1]
++                print(f"Found {self.prompt_num} objects")
++            else:
++                print(f"Found nothing :(")
+ 
+-        if len(self.new_click_xy) > 0:
++        if self.prompt_num > 0:
+ 
+             featmap = sems.reshape(H, W, -1)
+             

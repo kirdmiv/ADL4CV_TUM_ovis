@@ -6,6 +6,15 @@ Combine OmniSeg3D and LSeg (or 2D object detection model) to perform Open Vocabu
 - [ ] Add more examples
 - [ ] Re-run evaluations
 
+# 🚀 Installation & Quick Start
+
+Please refer to the **[Setup Guide](./SETUP.md)** for:
+
+- Installation instructions
+- Running the demo on the Replica dataset
+- Training on your own scenes
+- Tips for GPU-accelerated clustering
+
 # Method
 You can read a more in depth explanation of the method in the [final report](./assets/final_report.pdf).
 
